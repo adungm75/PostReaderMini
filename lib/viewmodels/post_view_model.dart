@@ -1,60 +1,41 @@
 import 'package:flutter/foundation.dart';
+import '../models/post_model.dart';
+import '../services/post_service.dart';
 
-import '../core/state/view_state.dart';
-import '../data/models/post_model.dart';
-import '../data/services/post_service.dart';
+/// 3 trạng thái giao diện theo đúng yêu cầu: Đang tải, Thành công, Báo lỗi
+enum ViewStatus { loading, success, error }
 
-/// ViewModel quản lý trạng thái và logic nghiệp vụ cho màn hình Post List
-///
-/// Vai trò trong MVVM & UDF:
-/// 1. Tiếp nhận sự kiện/yêu cầu từ View (ví dụ: `fetchPosts`, `refreshPosts`).
-/// 2. Điều phối tầng Network Service để lấy dữ liệu.
-/// 3. Cập nhật trạng thái nội bộ (`_state`, `_posts`, `_errorMessage`).
-/// 4. Phát tín hiệu qua `notifyListeners()` để View (thông qua `ListenableBuilder`) tự động rebuild.
+/// ViewModel: Xử lý logic nghiệp vụ và quản lý trạng thái
 class PostViewModel extends ChangeNotifier {
-  final PostService _postService;
+  final PostService _service;
 
-  PostViewModel({PostService? postService})
-      : _postService = postService ?? PostServiceImpl();
+  PostViewModel({PostService? service}) : _service = service ?? PostService();
 
-  // --- Các biến trạng thái nội bộ (State) ---
-  ViewState _state = ViewState.initial;
+  ViewStatus _status = ViewStatus.loading;
   List<PostModel> _posts = [];
-  String? _errorMessage;
+  String _errorMessage = '';
 
-  // --- Getters cung cấp cho View (Read-only) ---
-  ViewState get state => _state;
-  List<PostModel> get posts => List.unmodifiable(_posts);
-  String? get errorMessage => _errorMessage;
+  ViewStatus get status => _status;
+  List<PostModel> get posts => _posts;
+  String get errorMessage => _errorMessage;
 
-  bool get isLoading => _state == ViewState.loading;
-  bool get isLoaded => _state == ViewState.loaded;
-  bool get hasError => _state == ViewState.error;
-
-  /// Phương thức xử lý luồng lấy danh sách bài viết
-  ///
-  /// Luồng UDF diễn ra tại đây:
-  /// - Bước 1: Chuyển state sang `loading` -> `notifyListeners()` -> View hiển thị Spinner.
-  /// - Bước 2: Gọi tầng Network Service để lấy dữ liệu.
-  /// - Bước 3: Nếu thành công, gán `_posts`, chuyển state sang `loaded` -> `notifyListeners()` -> View render ListView.
-  /// - Bước 4: Nếu thất bại, bắt lỗi, gán `_errorMessage`, chuyển state sang `error` -> `notifyListeners()` -> View render màn hình lỗi + nút Retry.
-  Future<void> fetchPosts({bool isRefresh = false}) async {
-    // Nếu đang refresh thì không cần reset danh sách để tránh nhấp nháy UI
-    if (!isRefresh) {
-      _state = ViewState.loading;
-      _errorMessage = null;
-      notifyListeners();
-    }
+  /// Tải dữ liệu từ tầng Service và cập nhật trạng thái
+  Future<void> fetchPosts() async {
+    // 1. Chuyển sang trạng thái Đang tải (Loading)
+    _status = ViewStatus.loading;
+    _errorMessage = '';
+    notifyListeners();
 
     try {
-      final fetchedPosts = await _postService.fetchPosts();
-      _posts = fetchedPosts;
-      _state = ViewState.loaded;
-      _errorMessage = null;
+      // 2. Gọi Service lấy dữ liệu
+      _posts = await _service.fetchPosts();
+      _status = ViewStatus.success; // Trạng thái Thành công (Success)
     } catch (e) {
-      _errorMessage = e.toString();
-      _state = ViewState.error;
+      // 3. Trạng thái Báo lỗi (Error)
+      _status = ViewStatus.error;
+      _errorMessage = 'Không thể tải dữ liệu. Vui lòng thử lại!';
     } finally {
+      // Phát tín hiệu để View cập nhật giao diện
       notifyListeners();
     }
   }
