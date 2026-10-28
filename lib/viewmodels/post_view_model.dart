@@ -33,7 +33,8 @@ class PostViewModel extends ChangeNotifier {
     } catch (e) {
       // 3. Trạng thái Báo lỗi (Error)
       _status = ViewStatus.error;
-      _errorMessage = 'Không thể tải dữ liệu. Vui lòng thử lại!';
+      _errorMessage = 'Lỗi kết nối: $e';
+      debugPrint('PostViewModel Error: $e');
     } finally {
       // Phát tín hiệu để View cập nhật giao diện
       notifyListeners();
