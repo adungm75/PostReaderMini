@@ -33,10 +33,28 @@ class _PostViewState extends State<PostView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Demo MVVM - REST API'),
-        centerTitle: true,
-      ),
+appBar: AppBar(
+  title: const Text('Demo MVVM - REST API'),
+  centerTitle: true,
+
+  // Nút làm mới dữ liệu
+  actions: [
+    IconButton(
+      icon: const Icon(Icons.refresh),
+      tooltip: 'Làm mới dữ liệu',
+      onPressed: () {
+        _viewModel.fetchPosts();
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Đang cập nhật dữ liệu...'),
+            duration: Duration(seconds: 1),
+          ),
+        );
+      },
+    ),
+  ],
+),
       // Lắng nghe ViewModel qua ListenableBuilder
       body: ListenableBuilder(
         listenable: _viewModel,
@@ -89,16 +107,28 @@ class _PostViewState extends State<PostView> {
             separatorBuilder: (_, _) => const Divider(),
             itemBuilder: (context, index) {
               final post = _viewModel.posts[index];
-              return ListTile(
-                leading: CircleAvatar(
-                  child: Text('${post.id}'),
-                ),
-                title: Text(
-                  post.title,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                subtitle: Text(post.body),
-              );
+return ListTile(
+  leading: CircleAvatar(
+    child: Text('${post.id}'),
+  ),
+
+  title: Text(
+    post.title,
+    style: const TextStyle(fontWeight: FontWeight.bold),
+  ),
+
+  subtitle: Text(post.body),
+
+  // Sự kiện khi người dùng nhấn vào bài viết
+  onTap: () {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Bạn đã chọn bài viết số ${post.id}'),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  },
+);
             },
           );
         },
